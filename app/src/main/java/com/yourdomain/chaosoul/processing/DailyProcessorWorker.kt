@@ -11,100 +11,104 @@ import com.yourdomain.chaosoul.util.Constants
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.tanh
 
 class DailyProcessorWorker(private val appContext: Context, workerParams: WorkerParameters):
     CoroutineWorker(appContext, workerParams) {
 
-    // Define a tag for our logs
     private val TAG = "DailyProcessorWorker"
 
-    // Define safe limits for the driving forces
-    private val MAX_DRIVING_FORCE = 5.0f
-    private val MIN_DRIVING_FORCE = -5.0f
-
     override suspend fun doWork(): Result {
-        Log.d(TAG, "Starting daily processing work.")
         return try {
-            val repository = DataRepository(appContext)
             val prefs = appContext.getSharedPreferences(Constants.LAST_STATE_PREFS, Context.MODE_PRIVATE)
+            val isSimulation = inputData.getBoolean("is_simulation", false)
 
-            // 1. Define time window for the last 24 hours
-            val endTime = System.currentTimeMillis()
-            val startTime = endTime - (24 * 60 * 60 * 1000)
+            val workEnergy: Double
+            val socialEnergy: Double
+            val creativeEnergy: Double
+            val physicalEnergy: Double
 
-            // 2. GATHER DATA
-            val data = repository.getDailyInteractionData(startTime, endTime)
-            Log.d(TAG, "Interaction Data: $data")
+            if (isSimulation) {
+                Log.d(TAG, "Starting SIMULATED processing with Duffing model.")
+                workEnergy = inputData.getFloat("work_energy", 0f).toDouble()
+                socialEnergy = inputData.getFloat("social_energy", 0f).toDouble()
+                creativeEnergy = inputData.getFloat("creative_energy", 0f).toDouble()
+                physicalEnergy = inputData.getFloat("physical_energy", 0f).toDouble()
+                Log.d(TAG, "Simulated Energies: W=$workEnergy, S=$socialEnergy, C=$creativeEnergy, P=$physicalEnergy")
+            } else {
+                Log.d(TAG, "Starting REAL DATA processing with Duffing model.")
+                val repository = DataRepository(appContext)
+                val endTime = System.currentTimeMillis()
+                val startTime = endTime - (24 * 60 * 60 * 1000)
+                val data = repository.getDailyInteractionData(startTime, endTime)
+                Log.d(TAG, "Interaction Data: $data")
 
-            // 3. CALCULATE FORCES & PARAMETERS
-            val fSocial = data.socialTimeMs * Constants.K_SOCIAL_FORCE
-            val fWork = data.workTimeMs * Constants.K_WORK_FORCE
-            val fCreation = data.totalTypingDurationMs * Constants.K_CREATION
+                val timeScaleFactor = 1.0 / (60 * 60 * 1000)
+                workEnergy = data.workTimeMs * timeScaleFactor
+                socialEnergy = data.socialTimeMs * timeScaleFactor
+                creativeEnergy = data.totalTypingDurationMs * (timeScaleFactor * 10)
+                physicalEnergy = (data.orientationChanges * 0.1 + data.locationEntropy)
+            }
 
-            val fInterface = Constants.K_INTERFACE * (data.avgBrightness + (if (data.isSilent) -0.5f else 0.5f) + (if (data.headphonesOn) -0.5f else 0.5f))
+            val focusAxis = (socialEnergy + creativeEnergy) - workEnergy
+            val dynamismAxis = (socialEnergy + workEnergy + creativeEnergy + physicalEnergy)
+            val focusTanh = tanh(focusAxis.toFloat())
+            val dynamismTanh = tanh(dynamismAxis.toFloat() * 0.2f)
 
-            val rawFxDriving = (fSocial + fCreation) - fWork + fInterface
-            val fxDriving = rawFxDriving.coerceIn(MIN_DRIVING_FORCE, MAX_DRIVING_FORCE)
+            val delta = (0.2f - dynamismTanh * 0.18f).coerceIn(0.02f, 0.2f)
+            val gamma = (0.36f + focusTanh * 0.04f).coerceIn(0.32f, 0.4f)
+            val omega = 1.2f
+            val colorFactor = (focusTanh + 1.0f) / 2.0f
 
-            val fExplore = data.locationEntropy * Constants.K_EXPLORE_FORCE
-            val fDynamism = data.orientationChanges * Constants.K_DYNAMISM
+            // --- THIS IS THE CRITICAL ROBUSTNESS FIX ---
+            // 1. Sanitize Initial Conditions to prevent crashes from bad data
+            var lastX = prefs.getFloat(Constants.LAST_X_KEY, 0.1f)
+            var lastY = prefs.getFloat(Constants.LAST_Y_KEY, 0.1f)
 
-            val rawFyDriving = fExplore + fDynamism
-            val fyDriving = rawFyDriving.coerceIn(MIN_DRIVING_FORCE, MAX_DRIVING_FORCE)
+            if (!lastX.isFinite() || !lastY.isFinite() || abs(lastX) > 100f || abs(lastY) > 100f) {
+                Log.w(TAG, "Invalid start coordinates detected ($lastX, $lastY). Resetting to default.")
+                lastX = 0.1f
+                lastY = 0.1f
+            }
+            // --- END OF FIX ---
 
-            val entropy = (1 + data.locationEntropy + (data.workTimeMs + data.socialTimeMs + data.entertainmentTimeMs) / 3_600_000f).coerceAtLeast(1.0f) // ensure entropy is at least 1
-            val alpha = Constants.K_ALPHA / entropy
-            val beta = Constants.K_BETA * (data.locationEntropy + data.totalTypingDurationMs / 60_000f)
-
-            val lastX = prefs.getFloat(Constants.LAST_X_KEY, 0.1f)
-            val lastY = prefs.getFloat(Constants.LAST_Y_KEY, 0.1f)
-
-            Log.d(TAG, "--- Calculated Parameters ---")
-            Log.d(TAG, "Alpha: $alpha, Beta: $beta")
-            Log.d(TAG, "Fx Driving (Raw -> Clamped): $rawFxDriving -> $fxDriving")
-            Log.d(TAG, "Fy Driving (Raw -> Clamped): $rawFyDriving -> $fyDriving")
+            Log.d(TAG, "--- Duffing Model Parameters ---")
+            Log.d(TAG, "Delta (Damping): $delta, Gamma (Force): $gamma, Color Factor: $colorFactor")
             Log.d(TAG, "Starting Coords (X, Y): ($lastX, $lastY)")
-            Log.d(TAG, "---------------------------")
+            Log.d(TAG, "--------------------------------")
 
             val params = DailyParams(
-                alpha = alpha, beta = beta, Fx_driving = fxDriving, Fy_driving = fyDriving,
-                startX = lastX, startY = lastY
+                delta = delta, gamma = gamma, omega = omega,
+                colorFactor = colorFactor, startX = lastX, startY = lastY
             )
 
-            // 4. GENERATE & SAVE
-            Log.d(TAG, "Generating wallpaper with ChaosEngine...")
             val (bitmap, finalCoords) = ChaosEngine.generateWallpaper(params)
-            Log.d(TAG, "Wallpaper generated. Saving to file.")
-
             val file = File(appContext.filesDir, Constants.WALLPAPER_FILENAME)
             FileOutputStream(file).use {
                 bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
             }
-            Log.d(TAG, "File saved to ${file.absolutePath}. Size: ${file.length()} bytes.")
 
-            // 5. SAVE FINAL STATE AND RESET COUNTERS
             prefs.edit()
                 .putFloat(Constants.LAST_X_KEY, finalCoords.first)
                 .putFloat(Constants.LAST_Y_KEY, finalCoords.second)
                 .putInt(Constants.PREF_ORIENTATION_CHANGES, 0)
                 .apply()
 
-            // 6. PRUNE OLD DATA FROM THE DATABASE
-            val db = AppDatabase.getDatabase(appContext) // This db instance is scoped to the try block
-            val deletedRows = db.typingEventDao().clearOldEvents(startTime)
-            Log.d(TAG, "Pruned $deletedRows old typing events from database.")
+            if (!isSimulation) {
+                val db = AppDatabase.getDatabase(appContext)
+                val endTime = System.currentTimeMillis()
+                val startTime = endTime - (24 * 60 * 60 * 1000)
+                db.typingEventDao().clearOldEvents(startTime)
+            }
 
-            // 7. NOTIFY THE WALLPAPER SERVICE TO REFRESH
-            Log.d(TAG, "Sending refresh broadcast to wallpaper service.")
             val refreshIntent = Intent(Constants.REFRESH_WALLPAPER_ACTION)
             appContext.sendBroadcast(refreshIntent)
 
             Log.d(TAG, "Work finished successfully.")
             Result.success()
         } catch (e: Exception) {
-            // Log the actual exception
             Log.e(TAG, "Worker failed with an exception", e)
-            // The problematic line has been removed from here.
             Result.failure()
         }
     }

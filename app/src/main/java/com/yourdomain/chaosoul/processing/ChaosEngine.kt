@@ -4,47 +4,100 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import androidx.core.graphics.set
 import com.yourdomain.chaosoul.util.Constants
-import kotlin.math.abs
-
-data class DailyParams(
-    val alpha: Float, val beta: Float, val Fx_driving: Float, val Fy_driving: Float,
-    val startX: Float, val startY: Float
-)
+import kotlin.math.cos
+import kotlin.math.log10
+import kotlin.math.max
 
 object ChaosEngine {
 
+    private const val WARMUP_ITERATIONS = 5_000 // Run simulation briefly before drawing
+
     fun generateWallpaper(params: DailyParams): Pair<Bitmap, Pair<Float, Float>> {
-        val bitmap = Bitmap.createBitmap(Constants.WALLPAPER_WIDTH, Constants.WALLPAPER_HEIGHT, Bitmap.Config.ARGB_8888)
+        val width = Constants.WALLPAPER_WIDTH
+        val height = Constants.WALLPAPER_HEIGHT
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        bitmap.eraseColor(Color.BLACK)
 
         var x = params.startX
         var y = params.startY
 
-        val color1 = if (params.Fx_driving > 0) Color.rgb(255, 69, 0) else Color.rgb(30, 144, 255) // OrangeRed vs DodgerBlue
-        val color2 = if (params.Fy_driving > 0) Color.rgb(255, 215, 0) else Color.rgb(60, 179, 113) // Gold vs MediumSeaGreen
+        // --- PASS 1: Calculate Density Map ---
+        // This array will store how many times each pixel is "hit" by the simulation.
+        val density = IntArray(width * height) { 0 }
+        var maxDensity = 1 // Start at 1 to avoid division by zero
 
+        // Run the simulation for a bit without drawing to let it "settle" onto the attractor.
+        for (i in 0 until WARMUP_ITERATIONS) {
+            val t = i * Constants.DT
+            val dx = y
+            val dy = x - (x * x * x) - (params.delta * y) + (params.gamma * cos(params.omega * t))
+            x += dx * Constants.DT
+            y += dy * Constants.DT
+        }
+
+        // Now run the main simulation and record the density
         for (i in 0 until Constants.ITERATIONS) {
-            val dX = (-params.alpha * x + params.beta * y + params.Fx_driving) * Constants.DT
-            val dY = (-params.alpha * y - params.beta * x + params.Fy_driving) * Constants.DT
+            val t = (i + WARMUP_ITERATIONS) * Constants.DT
+            val dx = y
+            val dy = x - (x * x * x) - (params.delta * y) + (params.gamma * cos(params.omega * t))
+            x += dx * Constants.DT
+            y += dy * Constants.DT
 
-            x += dX
-            y += dY
+            // Scale to screen coordinates
+            val screenX = (x * 350 + width / 2).toInt()
+            val screenY = (y * 350 + height / 2).toInt()
 
-            val screenX = (x * 150 + Constants.WALLPAPER_WIDTH / 2).toInt()
-            val screenY = (y * 150 + Constants.WALLPAPER_HEIGHT / 2).toInt()
-
-            if (screenX in 0 until Constants.WALLPAPER_WIDTH && screenY in 0 until Constants.WALLPAPER_HEIGHT) {
-                val ratio = (abs(x) + abs(y)) / 10.0f
-                val blendedColor = blendColors(color1, color2, ratio.coerceIn(0f, 1f))
-                bitmap[screenX, screenY] = blendedColor
+            if (screenX in 0 until width && screenY in 0 until height) {
+                val index = screenY * width + screenX
+                density[index]++
+                if (density[index] > maxDensity) {
+                    maxDensity = density[index]
+                }
             }
         }
-        return Pair(bitmap, Pair(x, y)) // Return bitmap and final coordinates
+
+        // --- PASS 2: Render Bitmap from Density Map ---
+        // This pass converts the density values into beautiful colors.
+        val coolColor = Color.rgb(0, 150, 255) // Electric Blue
+        val warmColor = Color.rgb(255, 20, 147) // Deep Pink
+
+        // Use a logarithmic scale for density to bring out detail in less-visited areas
+        val logMaxDensity = log10(maxDensity.toFloat() + 1.0f)
+
+        for (py in 0 until height) {
+            for (px in 0 until width) {
+                val index = py * width + px
+                val count = density[index]
+                if (count > 0) {
+                    // 1. Determine base color by position (horizontal gradient)
+                    // The 'colorFactor' from the worker shifts the balance
+                    val xRatio = (px.toFloat() / width).coerceIn(0f, 1f)
+                    val baseColor = blendColors(coolColor, warmColor, xRatio * 0.5f + params.colorFactor * 0.5f)
+
+                    // 2. Determine brightness by density (logarithmic scale)
+                    val logDensity = log10(count.toFloat() + 1.0f)
+                    val brightness = (logDensity / logMaxDensity).coerceIn(0.1f, 1.0f)
+
+                    // 3. Combine base color and brightness
+                    val finalAlpha = 255
+                    val finalRed = (Color.red(baseColor) * brightness).toInt()
+                    val finalGreen = (Color.green(baseColor) * brightness).toInt()
+                    val finalBlue = (Color.blue(baseColor) * brightness).toInt()
+
+                    bitmap[px, py] = Color.argb(finalAlpha, finalRed, finalGreen, finalBlue)
+                }
+            }
+        }
+
+        return Pair(bitmap, Pair(x, y)) // Return final coordinates for the next day
     }
 
-    private fun blendColors(c1: Int, c2: Int, r: Float): Int {
-        val ir = 1f - r
-        val r1 = Color.red(c1) * ir; val g1 = Color.green(c1) * ir; val b1 = Color.blue(c1) * ir
-        val r2 = Color.red(c2) * r;  val g2 = Color.green(c2) * r;  val b2 = Color.blue(c2) * r
-        return Color.rgb((r1 + r2).toInt(), (g1 + g2).toInt(), (b1 + b2).toInt())
+    private fun blendColors(c1: Int, c2: Int, ratio: Float): Int {
+        val invRatio = 1f - ratio
+        val r = Color.red(c1) * invRatio + Color.red(c2) * ratio
+        val g = Color.green(c1) * invRatio + Color.green(c2) * ratio
+        val b = Color.blue(c1) * invRatio + Color.blue(c2) * ratio
+        return Color.rgb(r.toInt(), g.toInt(), b.toInt())
     }
 }

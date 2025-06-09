@@ -5,6 +5,7 @@ import android.app.WallpaperManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo // Import the required ApplicationInfo class
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
@@ -13,6 +14,7 @@ import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import com.yourdomain.chaosoul.R
@@ -30,6 +32,14 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // --- THIS IS THE NEW, ROBUST WAY TO CHECK FOR DEBUG MODE ---
+        // It checks the application's flags at runtime, avoiding build issues.
+        if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            binding.debugPanel.visibility = View.VISIBLE
+        }
+        // --- END OF CHANGE ---
+
         setupClickListeners()
     }
 
@@ -39,6 +49,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupClickListeners() {
+        // ... (The rest of this function is unchanged)
         // Setup Step 1: Usage Stats
         binding.stepUsageStats.stepActionButton.setOnClickListener {
             if (!hasUsageStatsPermission()) {
@@ -68,24 +79,47 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Main Action Button: Analyze & Generate
+        // Main Action Button: Analyze & Generate (Real Data)
         binding.btnRunAnalysis.setOnClickListener {
             Toast.makeText(this, R.string.toast_analysis_triggered, Toast.LENGTH_SHORT).show()
             val analysisWorkRequest = OneTimeWorkRequestBuilder<DailyProcessorWorker>().build()
             WorkManager.getInstance(this).enqueue(analysisWorkRequest)
         }
+
+        // Simulation Button Listener
+        binding.btnSimulate.setOnClickListener {
+            // Safely parse float values from EditTexts. Default to 0.0f if empty or invalid.
+            val work = binding.editWorkEnergy.text.toString().toFloatOrNull() ?: 0.0f
+            val social = binding.editSocialEnergy.text.toString().toFloatOrNull() ?: 0.0f
+            val creative = binding.editCreativeEnergy.text.toString().toFloatOrNull() ?: 0.0f
+            val physical = binding.editPhysicalEnergy.text.toString().toFloatOrNull() ?: 0.0f
+
+            val simulationData = Data.Builder()
+                .putBoolean("is_simulation", true)
+                .putFloat("work_energy", work)
+                .putFloat("social_energy", social)
+                .putFloat("creative_energy", creative)
+                .putFloat("physical_energy", physical)
+                .build()
+
+            val simulationWorkRequest = OneTimeWorkRequestBuilder<DailyProcessorWorker>()
+                .setInputData(simulationData)
+                .build()
+
+            WorkManager.getInstance(this).enqueue(simulationWorkRequest)
+            Toast.makeText(this, "Simulation started with your values!", Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun updateUiState() {
+        // ... (The rest of this file is unchanged) ...
         loadWallpaperPreview()
-
         val usageGranted = hasUsageStatsPermission()
         val accessibilityEnabled = isAccessibilityServiceEnabled()
         val wallpaperActive = isWallpaperServiceActive()
 
-        // Update Usage Stats Step
         binding.stepUsageStats.apply {
-            stepIcon.setImageResource(R.drawable.ic_usage_stats) // Create this icon
+            stepIcon.setImageResource(R.drawable.ic_usage_stats)
             stepTitle.text = getString(R.string.step_title_usage)
             stepActionButton.text = getString(R.string.action_grant)
             if (usageGranted) {
@@ -100,10 +134,8 @@ class MainActivity : AppCompatActivity() {
                 stepActionButton.alpha = 1.0f
             }
         }
-
-        // Update Accessibility Step
         binding.stepAccessibility.apply {
-            stepIcon.setImageResource(R.drawable.ic_keyboard) // Create this icon
+            stepIcon.setImageResource(R.drawable.ic_keyboard)
             stepTitle.text = getString(R.string.step_title_accessibility)
             stepActionButton.text = getString(R.string.action_enable)
             if (accessibilityEnabled) {
@@ -118,10 +150,8 @@ class MainActivity : AppCompatActivity() {
                 stepActionButton.alpha = 1.0f
             }
         }
-
-        // Update Set Wallpaper Step
         binding.stepSetWallpaper.apply {
-            stepIcon.setImageResource(R.drawable.ic_wallpaper) // Create this icon
+            stepIcon.setImageResource(R.drawable.ic_wallpaper)
             stepTitle.text = getString(R.string.step_title_wallpaper)
             stepActionButton.text = getString(R.string.action_set)
             if (wallpaperActive) {
@@ -136,30 +166,21 @@ class MainActivity : AppCompatActivity() {
                 stepActionButton.alpha = 1.0f
             }
         }
-
-
-        // Enable the main analysis button only if all core permissions are granted
         binding.btnRunAnalysis.isEnabled = usageGranted && accessibilityEnabled
     }
 
     private fun loadWallpaperPreview() {
         val wallpaperFile = File(filesDir, Constants.WALLPAPER_FILENAME)
         if (wallpaperFile.exists()) {
-            val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath)
-            binding.wallpaperPreview.setImageBitmap(bitmap)
+            binding.wallpaperPreview.setImageBitmap(BitmapFactory.decodeFile(wallpaperFile.absolutePath))
         } else {
-            // You can set a placeholder image or leave the background
-            binding.wallpaperPreview.setImageResource(0) // Clears the image
+            binding.wallpaperPreview.setImageResource(0)
         }
     }
 
     private fun hasUsageStatsPermission(): Boolean {
         val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            packageName
-        )
+        val mode = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, android.os.Process.myUid(), packageName)
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
@@ -171,7 +192,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun isWallpaperServiceActive(): Boolean {
         val wallpaperManager = WallpaperManager.getInstance(this)
-        val wallpaperInfo = wallpaperManager.wallpaperInfo
-        return wallpaperInfo != null && wallpaperInfo.packageName == packageName
+        return wallpaperManager.wallpaperInfo?.packageName == packageName
     }
 }

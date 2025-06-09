@@ -7,8 +7,6 @@
     android:background="#F0F4F8"
     tools:context=".ui.main.MainActivity">
 
-    <!-- 1. The "Analyze" button is now at the root level, constrained to the bottom. -->
-    <!-- This makes it a "sticky footer" that will NOT scroll. -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_run_analysis"
         android:layout_width="0dp"
@@ -22,9 +20,6 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
-
-    <!-- 2. We add a NestedScrollView to hold all the content that SHOULD scroll. -->
-    <!-- It is constrained to fill the space between the top of the screen and the button. -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -34,8 +29,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
-        <!-- 3. A ScrollView can only have ONE direct child. We use a LinearLayout -->
-        <!-- to hold all our views in a vertical stack. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,25 +37,24 @@
             android:paddingEnd="16dp"
             android:paddingTop="16dp">
 
-            <!-- All of your original scrolling content now goes inside this LinearLayout -->
             <ImageView
                 android:id="@+id/wallpaper_preview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:adjustViewBounds="true"
                 android:background="@drawable/preview_bg"
-                android:scaleType="centerCrop"
                 android:contentDescription="@string/desc_wallpaper_preview"
+                android:scaleType="centerCrop"
                 tools:src="@mipmap/ic_launcher" />
 
             <TextView
                 android:id="@+id/label_your_soul"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/label_your_current_soul"
-                android:textAppearance="@style/TextAppearance.AppCompat.Small"
                 android:layout_gravity="end"
-                android:layout_marginTop="4dp"/>
+                android:layout_marginTop="4dp"
+                android:text="@string/label_your_current_soul"
+                android:textAppearance="@style/TextAppearance.AppCompat.Small" />
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/setup_card"
@@ -71,6 +63,48 @@
                 android:layout_marginTop="16dp"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="4dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+                    <include
+                        android:id="@+id/step_usage_stats"
+                        layout="@layout/include_setup_step" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="?android:attr/listDivider" />
+                    <include
+                        android:id="@+id/step_accessibility"
+                        layout="@layout/include_setup_step" />
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="12dp"
+                        android:background="?android:attr/listDivider" />
+                    <include
+                        android:id="@+id/step_set_wallpaper"
+                        layout="@layout/include_setup_step" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ============================================= -->
+            <!-- VVVV THIS IS THE MODIFIED DEBUG PANEL VVVV -->
+            <!-- ============================================= -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/debug_panel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:layout_marginBottom="16dp"
+                android:visibility="gone"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="4dp"
+                tools:visibility="visible">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -78,28 +112,40 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <include layout="@layout/include_setup_step"
-                        android:id="@+id/step_usage_stats"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="Debug Simulation Panel"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
 
-                    <View
+                    <GridLayout
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="?android:attr/listDivider"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"/>
+                        android:layout_height="wrap_content"
+                        android:columnCount="2"
+                        android:useDefaultMargins="true">
 
-                    <include layout="@layout/include_setup_step"
-                        android:id="@+id/step_accessibility"/>
+                        <TextView android:text="Work Energy:" android:layout_gravity="end|center_vertical"/>
+                        <EditText android:id="@+id/edit_work_energy" android:inputType="numberDecimal" android:text="2.0"/>
 
-                    <View
+                        <TextView android:text="Social Energy:" android:layout_gravity="end|center_vertical"/>
+                        <EditText android:id="@+id/edit_social_energy" android:inputType="numberDecimal" android:text="3.5"/>
+
+                        <TextView android:text="Creative Energy:" android:layout_gravity="end|center_vertical"/>
+                        <EditText android:id="@+id/edit_creative_energy" android:inputType="numberDecimal" android:text="0.5"/>
+
+                        <TextView android:text="Physical Energy:" android:layout_gravity="end|center_vertical"/>
+                        <EditText android:id="@+id/edit_physical_energy" android:inputType="numberDecimal" android:text="1.0"/>
+
+                    </GridLayout>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_simulate"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                         android:layout_width="match_parent"
-                        android:layout_height="1dp"
-                        android:background="?android:attr/listDivider"
-                        android:layout_marginTop="12dp"
-                        android:layout_marginBottom="12dp"/>
-
-                    <include layout="@layout/include_setup_step"
-                        android:id="@+id/step_set_wallpaper"/>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="Simulate and Generate" />
 
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
