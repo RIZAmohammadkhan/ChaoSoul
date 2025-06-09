@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<categories>
+    <category name="work">
+        <package>com.google.android.docs</package>
+        <package>com.microsoft.office.word</package>
+        <package>com.slack</package>
+        <package>com.google.android.gm</package>
+        <package>com.microsoft.office.outlook</package>
+    </category>
+    <category name="social">
+        <package>com.whatsapp</package>
+        <package>com.facebook.orca</package>
+        <package>org.telegram.messenger</package>
+        <package>com.instagram.android</package>
+        <package>com.facebook.katana</package>
+    </category>
+    <category name="entertainment">
+        <package>com.google.android.youtube</package>
+        <package>com.netflix.mediaclient</package>
+        <package>com.spotify.music</package>
+    </category>
+</categories>

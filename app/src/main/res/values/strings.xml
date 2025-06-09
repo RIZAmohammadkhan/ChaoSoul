@@ -1,0 +1,31 @@
+<resources>
+    <string name="app_name">ChaoSoul</string>
+    <string name="wallpaper_description">A wallpaper that reflects your daily chaos.</string>
+    <string name="wallpaper_label">ChaoSoul Live Wallpaper</string>
+    <string name="accessibility_description">ChaoSoul needs to observe when the keyboard is active to understand your moments of creation and communication. It does NOT read what you type.</string>
+
+    <!-- New UI Strings -->
+    <string name="desc_wallpaper_preview">A preview of your current ChaoSoul wallpaper.</string>
+    <string name="label_your_current_soul">Your Current Soul</string>
+    <string name="button_analyze_now">Analyze and Generate Now</string>
+    <string name="desc_step_icon">Icon for a setup step</string>
+
+    <string name="step_title_usage">Usage Access</string>
+    <string name="step_title_accessibility">Keyboard Monitor</string>
+    <string name="step_title_wallpaper">Live Wallpaper</string>
+
+    <string name="status_granted">Status: Granted</string>
+    <string name="status_enabled">Status: Enabled</string>
+    <string name="status_active">Status: Active</string>
+    <string name="status_required">Status: Required</string>
+    <string name="status_inactive">Status: Inactive</string>
+
+    <string name="action_grant">Grant</string>
+    <string name="action_enable">Enable</string>
+    <string name="action_set">Set</string>
+
+    <string name="toast_analysis_triggered">Manual analysis triggered. Generating new soul...</string>
+    <string name="toast_permission_granted">Permission already granted.</string>
+    <string name="toast_service_enabled">Service already enabled.</string>
+    <string name="toast_wallpaper_set">Wallpaper already set.</string>
+</resources>

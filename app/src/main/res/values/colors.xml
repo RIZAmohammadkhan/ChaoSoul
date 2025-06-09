@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Palette - Cool, scientific blues -->
+    <color name="primary_blue_dark">#0D47A1</color>
+    <color name="primary_blue_main">#1976D2</color>
+    <color name="primary_blue_light">#42A5F5</color>
+
+    <!-- Secondary Palette - Energetic teals for accents -->
+    <color name="secondary_teal_dark">#00796B</color>
+    <color name="secondary_teal_main">#009688</color>
+    <color name="secondary_teal_light">#4DB6AC</color>
+
+    <!-- Standard Text & Background Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

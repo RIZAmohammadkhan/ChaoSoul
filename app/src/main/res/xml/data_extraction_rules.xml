@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    These are the data extraction rules for the ChaoSoul app.
+    They are configured to respect user privacy while maintaining the
+    continuity of the soul's trajectory across devices.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!--
+            WHAT WE BACK UP TO THE CLOUD:
+            We only back up the Shared Preferences file that stores the last
+            (x, y) coordinates of the simulation. This is essential to ensure
+            the wallpaper's evolution continues seamlessly if the user
+            restores the app on a new device. It is small and contains
+            no personally identifiable information.
+        -->
+        <include domain="sharedpref" path="last_state_prefs.xml"/>
+
+        <!--
+            WHAT WE EXCLUDE FROM CLOUD BACKUP:
+            We explicitly exclude the generated wallpaper image itself. It is a large,
+            ephemeral artifact that will be regenerated on the next cycle. Backing it up
+            would be an inefficient use of the user's cloud storage.
+        -->
+        <exclude domain="file" path="soul_wallpaper.png"/>
+
+        <!--
+            Most importantly, we exclude the entire Room database. It contains
+            sensitive, transient user interaction data (typing events). For privacy,
+            this data should NEVER leave the device. A user starting on a new phone
+            will simply begin a new history.
+        -->
+        <exclude domain="database" path="chaosoul_database"/>
+        <exclude domain="database" path="chaosoul_database-shm"/>
+        <exclude domain="database" path="chaosoul_database-wal"/>
+    </cloud-backup>
+
+    <device-transfer>
+        <!--
+            For direct device-to-device transfers, we will use the same robust
+            privacy-preserving rules as our cloud backup strategy for consistency.
+        -->
+        <include domain="sharedpref" path="last_state_prefs.xml"/>
+        <exclude domain="file" path="soul_wallpaper.png"/>
+        <exclude domain="database" path="chaosoul_database"/>
+        <exclude domain="database" path="chaosoul_database-shm"/>
+        <exclude domain="database" path="chaosoul_database-wal"/>
+    </device-transfer>
+</data-extraction-rules>

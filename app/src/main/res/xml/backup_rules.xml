@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    This is the legacy backup configuration file for Android versions
+    before Android 12. It ensures consistent behavior on older devices.
+-->
+<full-backup-content>
+    <include domain="sharedpref" path="last_state_prefs.xml"/>
+    <exclude domain="file" path="soul_wallpaper.png"/>
+    <exclude domain="database" path="chaosoul_database"/>
+    <exclude domain="database" path="chaosoul_database-shm"/>
+    <exclude domain="database" path="chaosoul_database-wal"/>
+</full-backup-content>

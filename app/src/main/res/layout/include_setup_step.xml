@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <ImageView
+        android:id="@+id/step_icon"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:src="@android:drawable/ic_lock_lock"
+        app:tint="@color/primary_blue_main"
+        android:contentDescription="@string/desc_step_icon"/>
+
+    <TextView
+        android:id="@+id/step_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+        android:textColor="@color/primary_blue_dark"
+        app:layout_constraintStart_toEndOf="@id/step_icon"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/step_action_button"
+        tools:text="Permission Title" />
+
+    <TextView
+        android:id="@+id/step_status"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+        app:layout_constraintStart_toEndOf="@id/step_icon"
+        app:layout_constraintTop_toBottomOf="@id/step_title"
+        app:layout_constraintEnd_toStartOf="@+id/step_action_button"
+        tools:text="Status: Granted"
+        tools:textColor="#008800" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/step_action_button"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:text="Grant" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

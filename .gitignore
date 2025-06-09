@@ -1,0 +1,71 @@
+*.iml
+.gradle
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+# =========================================
+# Android Studio & Gradle
+# =========================================
+# Generated build folders
+/.idea/
+/.gradle/
+
+# Generated files
+*.hprof
+*.keystore
+*.jks
+*.p12
+
+# Local configuration file (VERY IMPORTANT to ignore)
+# Contains SDK path and can contain sensitive signing keys/API keys
+
+# Log files
+*.log
+
+# Caches
+.cxx/
+captures/
+build-attribution.dat
+
+# =========================================
+# OS-specific files (macOS, Windows, Linux)
+# =========================================
+Thumbs.db
+desktop.ini
+
+# =========================================
+# ChaoSoul Project-Specific Ignores
+# =========================================
+# The generated wallpaper image is an artifact and should not be in version control.
+/app/soul_wallpaper.png
+
+# The Room database contains sensitive user data and must be ignored.
+/app/src/main/databases/
+*.db
+*.db-shm
+*.db-wal
+
+# An example of ignoring a file if you stored an API key (which you shouldn't do)
+# secrets.properties
+
+# =========================================
+# Android Studio
+# =========================================
+# Files for managing IntelliJ/Android Studio project settings
+.idea/caches/
+.idea/gradle.xml
+.idea/libraries/
+.idea/misc.xml
+.idea/modules.xml
+.idea/runConfigurations/
+.idea/workspace.xml
